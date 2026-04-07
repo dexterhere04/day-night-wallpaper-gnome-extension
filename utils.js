@@ -2,40 +2,52 @@
 
 'use strict';
 
-const ExtensionUtils = imports.misc.extensionUtils;
+import Gio from 'gi://Gio';
 
-var wallpaperMode = {
+export const wallpaperMode = {
     DAY: 1,
     NIGHT: 2
 };
 
-function getDesktopBackgroundSettings() {
-    return ExtensionUtils.getSettings('org.gnome.desktop.background');
+export function getDesktopBackgroundSettings() {
+    return Gio.Settings.new('org.gnome.desktop.background');
 }
 
-function getAvailablePictureOptions() {
+export function getAvailablePictureOptions() {
     const backgroundSettings = getDesktopBackgroundSettings();
-    return backgroundSettings.settings_schema.get_key('picture-options').get_range().get_child_value(1).get_child_value(0).deep_unpack();
+    const schema = backgroundSettings.settings_schema;
+    const key = schema.get_key('picture-options');
+    return key.get_range().get_child_value(1).get_child_value(0).deep_unpack();
 }
 
-function isWallpaperOptionSelected(extensionSettings, wallpaperKey) {
+export function isWallpaperOptionSelected(extensionSettings, wallpaperKey) {
     return extensionSettings.get_string(wallpaperKey) != '';
 }
 
-function fallbackToSystemWallpaper(extensionSettings, wallpaperKey) {
+export function fallbackToSystemWallpaper(extensionSettings, wallpaperKey) {
     const backgroundSettings = getDesktopBackgroundSettings();
     const systemBackgroundUri = backgroundSettings.get_string('picture-uri');
     extensionSettings.set_string(wallpaperKey, systemBackgroundUri);
 }
 
-function fallbackToSystemWallpaperAdjustment(extensionSettings, wallpaperAdjustmentKey) {
+export function fallbackToSystemWallpaperAdjustment(extensionSettings, wallpaperAdjustmentKey) {
     const backgroundSettings = getDesktopBackgroundSettings();
     const systemBackgroundAdjustment = backgroundSettings.get_string('picture-options');
     extensionSettings.set_string(wallpaperAdjustmentKey, systemBackgroundAdjustment);
 }
 
-function checkExtensionSettings() {
-    const extensionSettings = ExtensionUtils.getSettings();
+const SCHEMA_ID = 'org.gnome.shell.extensions.day-night-wallpaper';
+
+function getExtensionSettings() {
+    return Gio.Settings.new(SCHEMA_ID);
+}
+
+export function checkExtensionSettings() {
+    const extensionSettings = getExtensionSettings();
+    if (!extensionSettings) {
+        log('Could not get extension settings');
+        return;
+    }
 
     if (!isWallpaperOptionSelected(extensionSettings, 'day-wallpaper')) {
         fallbackToSystemWallpaper(extensionSettings, 'day-wallpaper');
@@ -54,7 +66,7 @@ function checkExtensionSettings() {
     }
 }
 
-var SwitchTime = class SwitchTime {
+export class SwitchTime {
     constructor(switchHour, switchMinute) {
         this._switchHour = switchHour;
         this._switchMinute = switchMinute;
@@ -83,7 +95,7 @@ var SwitchTime = class SwitchTime {
     }
 }
 
-var NextWallpaperSwitch = class NextWallpaperSwitch {
+export class NextWallpaperSwitch {
     constructor(mode, secondsLeftForSwitch) {
         this._mode = mode;
         this._secondsLeftForSwitch = secondsLeftForSwitch;
@@ -97,3 +109,32 @@ var NextWallpaperSwitch = class NextWallpaperSwitch {
         return this._secondsLeftForSwitch;
     }
 }
+
+export function isDayNow(daySwitchTime, nightSwitchTime) {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTimeMinutes = currentHour * 60 + currentMinute;
+    
+    const dayTimeMinutes = Math.floor(daySwitchTime) * 60 + Math.round((daySwitchTime % 1) * 60);
+    const nightTimeMinutes = Math.floor(nightSwitchTime) * 60 + Math.round((nightSwitchTime % 1) * 60);
+    
+    if (dayTimeMinutes < nightTimeMinutes) {
+        return currentTimeMinutes >= dayTimeMinutes && currentTimeMinutes < nightTimeMinutes;
+    } else {
+        return currentTimeMinutes >= dayTimeMinutes || currentTimeMinutes < nightTimeMinutes;
+    }
+}
+
+export default {
+    wallpaperMode,
+    getDesktopBackgroundSettings,
+    getAvailablePictureOptions,
+    isWallpaperOptionSelected,
+    fallbackToSystemWallpaper,
+    fallbackToSystemWallpaperAdjustment,
+    checkExtensionSettings,
+    SwitchTime,
+    NextWallpaperSwitch,
+    isDayNow
+};
