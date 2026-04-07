@@ -4,10 +4,11 @@
     "description": "Set separate wallpapers for day and night time.",
     "version": 2,
     "shell-version": [
-        "3.32",
-        "3.34",
-        "3.36",
-        "3.38"
+        "45",
+        "46",
+        "47",
+        "48",
+        "49"
     ],
     "settings-schema": "org.gnome.shell.extensions.day-night-wallpaper",
     "url": "https://github.com/swapnilmadavi/day-night-wallpaper-gnome-extension"
