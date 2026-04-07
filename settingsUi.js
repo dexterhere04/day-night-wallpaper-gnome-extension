@@ -2,14 +2,16 @@
 
 'use strict';
 
-const { GObject, Gtk } = imports.gi;
+import GObject from 'gi://GObject';
+import Gtk from 'gi://Gtk';
 
 var SwitchTimeWidget = GObject.registerClass(
 class SwitchTimeWidget extends Gtk.Box {
     _init() {
         super._init({
             spacing: 4,
-            halign: Gtk.Align.CENTER
+            halign: Gtk.Align.CENTER,
+            orientation: Gtk.Orientation.HORIZONTAL
         })
 
         const _hourSpinAdustment = new Gtk.Adjustment({
@@ -22,7 +24,7 @@ class SwitchTimeWidget extends Gtk.Box {
             upper: 59,
             step_increment: 1
         });
-        const _timeColonLabel = Gtk.Label.new(':');
+        const _timeColonLabel = Gtk.Label.new(' : ');
 
         this.hourSpinButton = new Gtk.SpinButton({
             adjustment: _hourSpinAdustment,
@@ -30,8 +32,7 @@ class SwitchTimeWidget extends Gtk.Box {
             width_chars: 2,
             max_width_chars: 2,
             snap_to_ticks: true,
-            numeric: true,
-            orientation: Gtk.Orientation.VERTICAL
+            numeric: true
         });
 
         this.minuteSpinButton = new Gtk.SpinButton({
@@ -40,16 +41,15 @@ class SwitchTimeWidget extends Gtk.Box {
             width_chars: 2,
             max_width_chars: 2,
             snap_to_ticks: true,
-            numeric: true,
-            orientation: Gtk.Orientation.VERTICAL
+            numeric: true
         });
 
         this.hourSpinButton.connect('output', this._padValueWithLeadingZero.bind(this));
         this.minuteSpinButton.connect('output', this._padValueWithLeadingZero.bind(this));
 
-        this.pack_start(this.hourSpinButton, false, false, 0);
-        this.pack_start(_timeColonLabel, false, false, 0);
-        this.pack_start(this.minuteSpinButton, false, false, 0);
+        this.append(this.hourSpinButton);
+        this.append(_timeColonLabel);
+        this.append(this.minuteSpinButton);
     }
 
     setSwitchTime(switchHour, switchMinute) {
@@ -72,7 +72,8 @@ class AboutSection extends Gtk.Box {
         super._init({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 6,
-            halign: Gtk.Align.CENTER
+            halign: Gtk.Align.CENTER,
+            margin_top: 18
         })
 
         const createdByLabel = new Gtk.Label({
@@ -87,7 +88,12 @@ class AboutSection extends Gtk.Box {
             use_markup: true
         });
 
-        this.pack_start(createdByLabel, false, true, 0);
-        this.pack_start(homepageLabel, false, true, 0);
+        this.append(createdByLabel);
+        this.append(homepageLabel);
     }
 });
+
+export default {
+    SwitchTimeWidget,
+    AboutSection
+};
