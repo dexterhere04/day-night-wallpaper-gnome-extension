@@ -21,6 +21,17 @@ export default class DayNightWallpaperPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = getSettings();
         const pictureOptions = getAvailablePictureOptions().sort();
+        const defaultAdjustment = 'zoom';
+
+        const getAdjustmentIndex = adjustment => {
+            const preferred = adjustment || defaultAdjustment;
+            const preferredIndex = pictureOptions.indexOf(preferred);
+            if (preferredIndex >= 0)
+                return preferredIndex;
+
+            const defaultIndex = pictureOptions.indexOf(defaultAdjustment);
+            return defaultIndex >= 0 ? defaultIndex : 0;
+        };
 
         const imageFileFilter = new Gtk.FileFilter();
         imageFileFilter.set_name('Image files');
@@ -44,7 +55,8 @@ export default class DayNightWallpaperPreferences extends ExtensionPreferences {
         const dayAdjRow = new Adw.ActionRow({ title: 'Adjustment' });
         const dayAdjustmentCombo = new Gtk.ComboBoxText();
         pictureOptions.forEach(opt => dayAdjustmentCombo.append_text(opt.charAt(0).toUpperCase() + opt.slice(1)));
-        dayAdjustmentCombo.set_active(0);
+        const dayAdjustment = settings.get_string('day-wallpaper-adjustment');
+        dayAdjustmentCombo.set_active(getAdjustmentIndex(dayAdjustment));
         dayAdjRow.add_suffix(dayAdjustmentCombo);
         dayAdjRow.set_activatable_widget(dayAdjustmentCombo);
         dayGroup.add(dayAdjRow);
@@ -68,7 +80,8 @@ export default class DayNightWallpaperPreferences extends ExtensionPreferences {
         const nightAdjRow = new Adw.ActionRow({ title: 'Adjustment' });
         const nightAdjustmentCombo = new Gtk.ComboBoxText();
         pictureOptions.forEach(opt => nightAdjustmentCombo.append_text(opt.charAt(0).toUpperCase() + opt.slice(1)));
-        nightAdjustmentCombo.set_active(0);
+        const nightAdjustment = settings.get_string('night-wallpaper-adjustment');
+        nightAdjustmentCombo.set_active(getAdjustmentIndex(nightAdjustment));
         nightAdjRow.add_suffix(nightAdjustmentCombo);
         nightAdjRow.set_activatable_widget(nightAdjustmentCombo);
         nightGroup.add(nightAdjRow);
@@ -167,6 +180,38 @@ export default class DayNightWallpaperPreferences extends ExtensionPreferences {
                 dlg.destroy();
             });
             file.show();
+        });
+
+        dayAdjustmentCombo.connect('changed', () => {
+            const active = dayAdjustmentCombo.get_active();
+            if (active < 0 || active >= pictureOptions.length)
+                return;
+
+            const adjustment = pictureOptions[active];
+            settings.set_string('day-wallpaper-adjustment', adjustment);
+
+            const daySwitchTime = settings.get_double('day-wallpaper-switch-time');
+            const nightSwitchTime = settings.get_double('night-wallpaper-switch-time');
+            if (isDayNow(daySwitchTime, nightSwitchTime)) {
+                const bg = Gio.Settings.new('org.gnome.desktop.background');
+                bg.set_string('picture-options', adjustment);
+            }
+        });
+
+        nightAdjustmentCombo.connect('changed', () => {
+            const active = nightAdjustmentCombo.get_active();
+            if (active < 0 || active >= pictureOptions.length)
+                return;
+
+            const adjustment = pictureOptions[active];
+            settings.set_string('night-wallpaper-adjustment', adjustment);
+
+            const daySwitchTime = settings.get_double('day-wallpaper-switch-time');
+            const nightSwitchTime = settings.get_double('night-wallpaper-switch-time');
+            if (!isDayNow(daySwitchTime, nightSwitchTime)) {
+                const bg = Gio.Settings.new('org.gnome.desktop.background');
+                bg.set_string('picture-options', adjustment);
+            }
         });
 
         dayTimeWidget.hourSpinButton.connect('value-changed', () => {
